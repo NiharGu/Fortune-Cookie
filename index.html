@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Your Fortune</title>
+    <link rel="icon" type="image/png" href="fc.png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Quicksand:wght@500&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- RESET & BASE --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html {
+            height: 100%;
+            overflow: hidden;
+            /* Deep Maroon Background */
+            background-color: #800000; 
+            font-family: 'Quicksand', sans-serif;
+            overscroll-behavior: none;
+            transition: background-color 3s ease; 
+        }
+
+        /* --- UI: CINEMATIC BARS --- */
+        .cinematic-bar {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            height: 70px; 
+            background-color: #1f1f1f; 
+            z-index: 100; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+        .bar-top { top: 0; }
+        .bar-bottom { bottom: 0; }
+
+        /* --- HEADER DESIGN --- */
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 400px;
+            justify-content: center;
+        }
+        .title-text {
+            color: #e0e0e0;
+            font-family: 'Great Vibes', cursive;
+            font-size: 2rem;
+            letter-spacing: 1px;
+            margin-top: 5px; 
+        }
+        .deco-lines {
+            flex: 1;
+            height: 12px;
+            background: repeating-linear-gradient(to bottom, #666 0px, #666 2px, transparent 2px, transparent 5px);
+            opacity: 0.6;
+            max-width: 60px; 
+        }
+
+        /* --- VIDEO LAYER --- */
+        .video-bg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 6.0s ease; 
+        }
+
+        /* --- STAGE --- */
+        .stage {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            flex-direction: column;
+        }
+
+        /* --- THE FORTUNE SLIP --- */
+        .slip-container {
+            position: absolute;
+            z-index: 5;
+            width: 90%; 
+            max-width: 600px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transform: scale(0.95);
+
+            /* Text Distortion Fix: Force GPU rendering */
+            backface-visibility: hidden;
+            will-change: opacity, transform;
+
+            transition: opacity 4.0s ease-out 0.2s, transform 4.0s ease-out 0.2s;
+        }
+        .slip-paper {
+            background: #fffdf0;
+            padding: 1.2rem; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            text-align: center;
+            border: 1px solid #d4c5a9;
+            width: 100%;
+            border-radius: 2px;
+            transform: rotate(-1deg);
+        }
+        .fortune-text {
+            color: #b71c1c; 
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-weight: 400; 
+            font-style: normal;
+            font-size: 1rem; 
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        .lucky-numbers {
+            font-family: 'Courier New', monospace;
+            font-size: 0.6rem;
+            color: #888;
+            letter-spacing: 1px;
+            border-top: 1px dashed #ccc;
+            padding-top: 6px;
+        }
+
+        /* --- THE COOKIE --- */
+        .cookie-wrapper {
+            width: 90vw;
+            max-width: 500px;
+            aspect-ratio: 1 / 1;
+            position: relative;
+            z-index: 20;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .cookie-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('fc.png'); 
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        /* LAYER 1: Full Cover (Visible Initially) */
+        .cookie-full { 
+            z-index: 30; 
+            opacity: 1; 
+            transition: opacity 0.1s; /* Instant disappear to prevent ghosting */
+            filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+        }
+        
+        /* LAYER 2: Split Halves (Hidden underneath) */
+        .cookie-half {
+            z-index: 20;
+            /* GHOST LINE FIX: No shadow initially. Shadow fades in later (see below) */
+            filter: none; 
+            
+            /* MOVEMENT: Very slow (15s) */
+            transition: transform 15.0s cubic-bezier(0.2, 1, 0.3, 1), 
+                        opacity 2s ease 3s,
+                        filter 2s ease 2s; /* Delay shadow appearance by 2s */
+        }
+
+        /* CUT POSITION & OVERLAP FIX */
+        /* Overlap by 0.5% to ensure no background line is visible */
+        .half-left { clip-path: inset(0 51.5% 0 0); } /* Shows 0 to 48.5% */
+        .half-right { clip-path: inset(0 0 0 48%); }   /* Shows 48% to 100% */
+
+        /* --- ANIMATION STATES --- */
+        
+        /* 1. Hide cover instantly */
+        body.cracked .cookie-full { opacity: 0; visibility: hidden; }
+
+        /* 2. Move pieces & Add Shadow ONLY when moving */
+        body.cracked .half-left { 
+            transform: translateX(-100vw); 
+            opacity: 0; 
+            filter: drop-shadow(0 15px 25px rgba(0,0,0,0.5)); 
+        }
+        body.cracked .half-right { 
+            transform: translateX(100vw); 
+            opacity: 0; 
+            filter: drop-shadow(0 15px 25px rgba(0,0,0,0.5)); 
+        }
+
+        body.cracked .slip-container { opacity: 1; transform: scale(1); z-index: 25; }
+        .video-bg.playing { opacity: 1; }
+        
+        .tap-hint {
+            margin-top: 30px; 
+            color: #eee; 
+            font-weight: 500;
+            font-size: 1.1rem;
+            opacity: 0.8;
+            animation: pulse 2s infinite;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        @keyframes pulse { 0% { opacity:0.5;} 50% {opacity:1;} 100% {opacity:0.5;} }
+        body.cracked .tap-hint { display: none; }
+
+    </style>
+</head>
+<body>
+
+    <video class="video-bg" id="vid-ocean" muted loop playsinline src="ocean.mp4"></video>
+    <video class="video-bg" id="vid-clouds" muted loop playsinline src="clouds.mp4"></video>
+    <video class="video-bg" id="vid-embers" muted loop playsinline src="embers.mp4"></video>
+    <video class="video-bg" id="vid-blossoms" muted loop playsinline src="blossoms.mp4"></video>
+
+    <div class="cinematic-bar bar-top">
+        <div class="header-content">
+            <div class="deco-lines"></div>
+            <div class="title-text">Your Fortune</div>
+            <div class="deco-lines"></div>
+        </div>
+    </div>
+
+    <div class="cinematic-bar bar-bottom"></div>
+
+    <div class="stage">
+        
+        <div class="slip-container">
+            <div class="slip-paper">
+                <div class="fortune-text" id="fortune-text">...</div>
+                <div class="lucky-numbers" id="lucky-numbers"></div>
+            </div>
+        </div>
+
+        <div class="cookie-wrapper" id="cookie" onclick="breakCookie()">
+            <div class="cookie-layer cookie-full"></div>
+            <div class="cookie-layer cookie-half half-left"></div>
+            <div class="cookie-layer cookie-half half-right"></div>
+        </div>
+
+        <div class="tap-hint">Tap to Open</div>
+
+    </div>
+
+    <script>
+        // --- 1. DATA ---
+        const database = [
+            // OCEAN
+            { t: "ocean", m: "A smooth sea never made a skilled sailor." },
+            { t: "ocean", m: "Go with the flow; the ocean knows its way." },
+            { t: "ocean", m: "You will soon cross great waters." },
+            { t: "ocean", m: "Depth of character is worth more than surface shimmer." },
+            { t: "ocean", m: "Your potential is as vast as the sea." },
+            { t: "ocean", m: "Tides change, and so does luck—yours is coming in." },
+            { t: "ocean", m: "Find peace in the rhythm of the waves." },
+            { t: "ocean", m: "Navigate by the stars, not the passing ships." },
+            { t: "ocean", m: "A pearl is hidden in your near future." },
+            { t: "ocean", m: "Sink or swim? You were born to float." },
+            { t: "ocean", m: "The coast is clear for your next big move." },
+            { t: "ocean", m: "Emotional waves are temporary; your strength is the shore." },
+            { t: "ocean", m: "Let your worries drift away with the tide." },
+            { t: "ocean", m: "Adventure calls from across the horizon." },
+            { t: "ocean", m: "Be like water: fluid, powerful, and unstoppable." },
+            { t: "ocean", m: "There is calm beneath every storm." },
+            { t: "ocean", m: "You are an ocean in a drop." },
+            { t: "ocean", m: "Salt water cures all wounds." },
+            { t: "ocean", m: "Your ship is coming in." },
+            { t: "ocean", m: "Explore the depths of your own creativity." },
+            { t: "ocean", m: "Trust the current of life." },
+            { t: "ocean", m: "Deep wisdom awaits your discovery." },
+            { t: "ocean", m: "Ride the wave of momentum." },
+            { t: "ocean", m: "A voyage of self-discovery is beginning." },
+            { t: "ocean", m: "The answer lies in the reflection of the water." },
+
+            // CLOUDS
+            { t: "clouds", m: "Keep your head in the clouds and feet on the ground." },
+            { t: "clouds", m: "Every cloud has a silver lining." },
+            { t: "clouds", m: "Your dreams are valid and within reach." },
+            { t: "clouds", m: "Look up; the perspective changes everything." },
+            { t: "clouds", m: "Storms pass, but the sky remains." },
+            { t: "clouds", m: "You will rise above the current challenges." },
+            { t: "clouds", m: "A lighter approach will solve your heavy problem." },
+            { t: "clouds", m: "Clarification is coming your way soon." },
+            { t: "clouds", m: "Let your imagination soar freely." },
+            { t: "clouds", m: "The sky is not the limit; it's just the view." },
+            { t: "clouds", m: "You are free to change your shape like a cloud." },
+            { t: "clouds", m: "High hopes bring high rewards." },
+            { t: "clouds", m: "A dreamy opportunity will float into your life." },
+            { t: "clouds", m: "Drift gently through this phase; don't force it." },
+            { t: "clouds", m: "Sunshine follows even the darkest clouds." },
+            { t: "clouds", m: "Your mind is clear, your path is open." },
+            { t: "clouds", m: "Aim high. Even if you miss, you're among the stars." },
+            { t: "clouds", m: "Softness is a strength, not a weakness." },
+            { t: "clouds", m: "Allow yourself to daydream today." },
+            { t: "clouds", m: "Change is as natural as the weather." },
+            { t: "clouds", m: "You bring light and air to those around you." },
+            { t: "clouds", m: "Rise above the noise." },
+            { t: "clouds", m: "Clarity comes when the fog lifts." },
+            { t: "clouds", m: "Your future looks bright and breezy." },
+            { t: "clouds", m: "Floating is sometimes better than climbing." },
+
+            // EMBERS
+            { t: "embers", m: "Your passion will ignite a new path." },
+            { t: "embers", m: "From the ashes, you will rise stronger." },
+            { t: "embers", m: "Burn bright, but do not burn out." },
+            { t: "embers", m: "A spark of an idea will turn into a flame." },
+            { t: "embers", m: "Warmth and light are yours to share." },
+            { t: "embers", m: "Your energy is magnetic and powerful." },
+            { t: "embers", m: "Strike while the iron is hot." },
+            { t: "embers", m: "The fire inside you is brighter than the fire around you." },
+            { t: "embers", m: "Rekindle an old friendship or hobby." },
+            { t: "embers", m: "Keep the home fires burning." },
+            { t: "embers", m: "Intensity is your ally right now." },
+            { t: "embers", m: "Glow with confidence." },
+            { t: "embers", m: "A slow burn leads to a lasting success." },
+            { t: "embers", m: "You are the light in someone's darkness." },
+            { t: "embers", m: "Transformation through heat is necessary." },
+            { t: "embers", m: "Don't be afraid to shine." },
+            { t: "embers", m: "Your spirit is unbreakable." },
+            { t: "embers", m: "Fuel your ambitions with action." },
+            { t: "embers", m: "A romantic spark is imminent." },
+            { t: "embers", m: "Courage is fire, and bullying is smoke." },
+            { t: "embers", m: "Let go of what burnt you; keep the warmth." },
+            { t: "embers", m: "Illuminate the world with your talent." },
+            { t: "embers", m: "Stand your ground with fiery determination." },
+            { t: "embers", m: "Creativity is a wild fire; let it spread." },
+            { t: "embers", m: "The night is darkest just before the dawn." },
+
+            // BLOSSOMS
+            { t: "blossoms", m: "Bloom where you are planted." },
+            { t: "blossoms", m: "Good things take time to grow." },
+            { t: "blossoms", m: "Your life is about to enter a beautiful season." },
+            { t: "blossoms", m: "Patience is the secret to nature's peace." },
+            { t: "blossoms", m: "A new friendship will blossom soon." },
+            { t: "blossoms", m: "The seeds you plant now will harvest later." },
+            { t: "blossoms", m: "Beauty is found in the journey, not just the bloom." },
+            { t: "blossoms", m: "Let your true colors show." },
+            { t: "blossoms", m: "Growth is often uncomfortable but always worth it." },
+            { t: "blossoms", m: "Spring is a state of mind." },
+            { t: "blossoms", m: "You are growing in ways you don't yet see." },
+            { t: "blossoms", m: "Happiness radiates like the fragrance from a flower." },
+            { t: "blossoms", m: "Handle yourself with care; you are precious." },
+            { t: "blossoms", m: "A fresh start is exactly what you need." },
+            { t: "blossoms", m: "Open your heart to new possibilities." },
+            { t: "blossoms", m: "Nature does not hurry, yet everything is accomplished." },
+            { t: "blossoms", m: "Your kindness makes the world beautiful." },
+            { t: "blossoms", m: "Prosperity is taking root in your life." },
+            { t: "blossoms", m: "Even the tallest tree started as a seed." },
+            { t: "blossoms", m: "Embrace the cycle of change." },
+            { t: "blossoms", m: "Wither the old to make room for the new." },
+            { t: "blossoms", m: "Your grace is your power." },
+            { t: "blossoms", m: "Fertile ground awaits your ideas." },
+            { t: "blossoms", m: "Turn your face to the sun." },
+            { t: "blossoms", m: "A garden of joy is growing within you." }
+        ];
+
+        // --- 2. LOGIC ---
+        let hasCracked = false;
+
+        function init() {
+            const randIndex = Math.floor(Math.random() * database.length);
+            const data = database[randIndex];
+            
+            document.getElementById('fortune-text').innerText = data.m;
+            
+            const nums = Array.from({length: 6}, () => Math.floor(Math.random() * 99) + 1).join(" • ");
+            document.getElementById('lucky-numbers').innerText = `LUCKY NUMBERS: ${nums}`;
+
+            window.chosenTheme = data.t;
+
+             // Auto-break timer (6 seconds)
+             setTimeout(() => {
+                if(!hasCracked) breakCookie();
+            }, 6000);
+        }
+
+        function breakCookie() {
+            if(hasCracked) return;
+            hasCracked = true;
+
+            document.body.classList.add('cracked');
+            
+            // Turn bg black immediately for video fade out
+            document.body.style.backgroundColor = "#000000";
+
+            playThemeVideo(window.chosenTheme);
+        }
+
+        function playThemeVideo(theme) {
+            const videoId = `vid-${theme}`;
+            const video = document.getElementById(videoId);
+
+            if(video) {
+                // SET PLAYBACK SPEED TO 0.75x
+                video.playbackRate = 0.75;
+                
+                video.play().catch(e => console.log("Autoplay blocked", e));
+                video.classList.add('playing');
+
+                // FADE OUT LOGIC (10s hold, 6s fade)
+                setTimeout(() => {
+                    video.classList.remove('playing');
+                }, 10000); 
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
