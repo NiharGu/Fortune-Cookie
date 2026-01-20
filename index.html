@@ -13,20 +13,29 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body, html {
             height: 100%;
+            height: 100vh; /* Safari fix */
+            height: 100dvh; /* Dynamic viewport height for modern browsers */
             overflow: hidden;
-            /* Deep Maroon Background - hidden initially to prevent flashing */
-            background-color: #1f1f1f; 
+            /* Original maroon background */
+            background-color: #800000; 
             font-family: 'Quicksand', sans-serif;
             overscroll-behavior: none;
-            transition: background-color 3s ease; 
+            transition: background-color 3s ease;
+            /* Safari-specific fixes */
+            -webkit-overflow-scrolling: touch;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
         }
 
         /* --- UI: CINEMATIC BARS --- */
         .cinematic-bar {
-            position: absolute;
+            position: fixed; /* Use fixed instead of absolute for Safari */
             left: 0;
             width: 100%;
             height: 12vh; /* Use viewport height for better mobile scaling */
+            height: 12dvh; /* Dynamic viewport height for modern browsers */
             min-height: 60px; /* Minimum height */
             max-height: 100px; /* Maximum height */
             background-color: #1f1f1f; 
@@ -35,6 +44,9 @@
             justify-content: center;
             align-items: center;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            /* Safari-specific fixes */
+            -webkit-transform: translateZ(0);
+            transform: translateZ(0);
         }
         .bar-top { top: 0; }
         .bar-bottom { bottom: 0; }
@@ -76,8 +88,12 @@
 
         /* --- STAGE --- */
         .stage {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            position: fixed; /* Use fixed for Safari compatibility */
+            top: 0; left: 0; 
+            width: 100%; 
+            height: 100%;
+            height: 100vh; /* Safari fallback */
+            height: 100dvh; /* Modern browsers */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -362,28 +378,40 @@
 
         // --- 2. LOGIC ---
         let hasCracked = false;
+        let chosenData = null;
+        let isPreloaded = false;
+
+        function generateFortuneData() {
+            const randIndex = Math.floor(Math.random() * database.length);
+            return database[randIndex];
+        }
 
         function init() {
-            // Set initial background to maroon after page loads
-            document.body.style.backgroundColor = "#800000";
+            // Generate fortune and preload video in background immediately
+            preloadFortuneAndVideo();
+
+            // Auto-break timer (6 seconds)
+            setTimeout(() => {
+                if(!hasCracked) breakCookie();
+            }, 6000);
+        }
+
+        function preloadFortuneAndVideo() {
+            // Generate fortune data
+            chosenData = generateFortuneData();
+            window.chosenTheme = chosenData.t;
             
-            const randIndex = Math.floor(Math.random() * database.length);
-            const data = database[randIndex];
-            
-            document.getElementById('fortune-text').innerText = data.m;
+            // Set fortune text (hidden until cookie breaks)
+            document.getElementById('fortune-text').innerText = chosenData.m;
             
             const nums = Array.from({length: 6}, () => Math.floor(Math.random() * 99) + 1).join(" • ");
             document.getElementById('lucky-numbers').innerText = `LUCKY NUMBERS: ${nums}`;
-
-            window.chosenTheme = data.t;
             
-            // Preload the chosen theme video
-            preloadChosenVideo(data.t);
-
-             // Auto-break timer (6 seconds)
-             setTimeout(() => {
-                if(!hasCracked) breakCookie();
-            }, 6000);
+            // Preload the chosen theme video in background
+            preloadChosenVideo(chosenData.t);
+            
+            isPreloaded = true;
+            console.log(`Fortune and ${chosenData.t} video preloaded in background`);
         }
 
         function preloadChosenVideo(theme) {
@@ -410,9 +438,10 @@
 
             document.body.classList.add('cracked');
             
-            // Turn bg black immediately for video fade out
+            // Turn bg black immediately for video fade-in effect
             document.body.style.backgroundColor = "#000000";
 
+            // Play video instantly since it's already preloaded
             playThemeVideo(window.chosenTheme);
         }
 
@@ -442,6 +471,13 @@
         }
 
         window.onload = init;
+        
+        // Ensure initialization even if onload doesn't fire properly (Safari fix)
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!isPreloaded) {
+                init();
+            }
+        });
     </script>
 </body>
 </html>
