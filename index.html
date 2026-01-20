@@ -13,51 +13,29 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body, html {
             height: 100%;
-            height: 100vh; /* Safari fix */
-            height: 100dvh; /* Dynamic viewport height for modern browsers */
             overflow: hidden;
-            /* Original maroon background */
+            /* Deep Maroon Background */
             background-color: #800000; 
             font-family: 'Quicksand', sans-serif;
             overscroll-behavior: none;
-            transition: background-color 3s ease;
-            /* Safari-specific fixes */
-            -webkit-overflow-scrolling: touch;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            /* Android-specific fixes */
-            min-height: 100vh;
-            min-height: 100dvh;
+            transition: background-color 3s ease; 
         }
 
         /* --- UI: CINEMATIC BARS --- */
         .cinematic-bar {
-            position: fixed; /* Use fixed instead of absolute for Safari */
+            position: absolute;
             left: 0;
             width: 100%;
-            height: 15vh; /* Increased for Android safety */
-            height: 15dvh; /* Dynamic viewport height for modern browsers */
-            min-height: 80px; /* Increased minimum height */
-            max-height: 120px; /* Increased maximum height */
+            height: 70px; 
             background-color: #1f1f1f; 
             z-index: 100; 
             display: flex;
             justify-content: center;
             align-items: center;
             box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            /* Safari-specific fixes */
-            -webkit-transform: translateZ(0);
-            transform: translateZ(0);
         }
         .bar-top { top: 0; }
-        .bar-bottom { 
-            bottom: 0; 
-            /* Android Chrome address bar compensation */
-            bottom: env(safe-area-inset-bottom, 0);
-            padding-bottom: env(safe-area-inset-bottom, 0);
-        }
+        .bar-bottom { bottom: 0; }
 
         /* --- HEADER DESIGN --- */
         .header-content {
@@ -96,21 +74,13 @@
 
         /* --- STAGE --- */
         .stage {
-            position: fixed; /* Use fixed for Safari compatibility */
-            top: 0; left: 0; 
-            width: 100%; 
-            height: 100%;
-            height: 100vh; /* Safari fallback */
-            height: 100dvh; /* Modern browsers */
-            min-height: 100vh; /* Android fix */
-            min-height: 100dvh; /* Android fix with dynamic viewport */
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 10;
             flex-direction: column;
-            /* Additional Android fixes */
-            padding-bottom: env(safe-area-inset-bottom, 0);
         }
 
         /* --- THE FORTUNE SLIP --- */
