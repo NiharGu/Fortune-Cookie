@@ -14,8 +14,8 @@
         body, html {
             height: 100%;
             overflow: hidden;
-            /* Deep Maroon Background - hidden initially to prevent flashing */
-            background-color: #1f1f1f; 
+            /* Deep Maroon Background */
+            background-color: #800000; 
             font-family: 'Quicksand', sans-serif;
             overscroll-behavior: none;
             transition: background-color 3s ease; 
@@ -26,9 +26,7 @@
             position: absolute;
             left: 0;
             width: 100%;
-            height: 12vh; /* Use viewport height for better mobile scaling */
-            min-height: 60px; /* Minimum height */
-            max-height: 100px; /* Maximum height */
+            height: 70px; 
             background-color: #1f1f1f; 
             z-index: 100; 
             display: flex;
@@ -214,10 +212,10 @@
 </head>
 <body>
 
-    <video class="video-bg" id="vid-ocean" muted loop playsinline preload="auto" src="ocean.mp4"></video>
-    <video class="video-bg" id="vid-clouds" muted loop playsinline preload="auto" src="clouds.mp4"></video>
-    <video class="video-bg" id="vid-embers" muted loop playsinline preload="auto" src="embers.mp4"></video>
-    <video class="video-bg" id="vid-blossoms" muted loop playsinline preload="auto" src="blossoms.mp4"></video>
+    <video class="video-bg" id="vid-ocean" muted loop playsinline src="ocean.mp4"></video>
+    <video class="video-bg" id="vid-clouds" muted loop playsinline src="clouds.mp4"></video>
+    <video class="video-bg" id="vid-embers" muted loop playsinline src="embers.mp4"></video>
+    <video class="video-bg" id="vid-blossoms" muted loop playsinline src="blossoms.mp4"></video>
 
     <div class="cinematic-bar bar-top">
         <div class="header-content">
@@ -362,53 +360,22 @@
 
         // --- 2. LOGIC ---
         let hasCracked = false;
-        let chosenData = null;
 
         function init() {
-            // Generate fortune and preload video immediately when page loads
             const randIndex = Math.floor(Math.random() * database.length);
-            chosenData = database[randIndex];
+            const data = database[randIndex];
             
-            // Set initial background to maroon after page loads
-            document.body.style.backgroundColor = "#800000";
-            
-            document.getElementById('fortune-text').innerText = chosenData.m;
+            document.getElementById('fortune-text').innerText = data.m;
             
             const nums = Array.from({length: 6}, () => Math.floor(Math.random() * 99) + 1).join(" • ");
             document.getElementById('lucky-numbers').innerText = `LUCKY NUMBERS: ${nums}`;
 
-            window.chosenTheme = chosenData.t;
-            
-            // Preload the chosen theme video in background immediately
-            preloadChosenVideo(chosenData.t);
+            window.chosenTheme = data.t;
 
              // Auto-break timer (6 seconds)
              setTimeout(() => {
                 if(!hasCracked) breakCookie();
             }, 6000);
-        }
-
-        function preloadChosenVideo(theme) {
-            const videoId = `vid-${theme}`;
-            const video = document.getElementById(videoId);
-            
-            if(video) {
-                // Force loading of the chosen video in background
-                video.load();
-                
-                // Set playback rate early
-                video.playbackRate = 0.75;
-                
-                // Ensure it's ready to play
-                video.addEventListener('canplaythrough', function() {
-                    console.log(`Video ${theme} preloaded successfully in background`);
-                }, {once: true});
-                
-                // Also listen for loadeddata as backup
-                video.addEventListener('loadeddata', function() {
-                    console.log(`Video ${theme} data loaded`);
-                }, {once: true});
-            }
         }
 
         function breakCookie() {
@@ -428,18 +395,11 @@
             const video = document.getElementById(videoId);
 
             if(video) {
-                // Video should already be preloaded, so play instantly
-                if(video.readyState >= 3) {
-                    // Video is ready to play immediately
-                    video.play().catch(e => console.log("Autoplay blocked", e));
-                    video.classList.add('playing');
-                } else {
-                    // Fallback: wait for video to be ready (should be rare since it's preloaded)
-                    video.addEventListener('canplay', function() {
-                        video.play().catch(e => console.log("Autoplay blocked", e));
-                        video.classList.add('playing');
-                    }, {once: true});
-                }
+                // SET PLAYBACK SPEED TO 0.75x
+                video.playbackRate = 0.75;
+                
+                video.play().catch(e => console.log("Autoplay blocked", e));
+                video.classList.add('playing');
 
                 // FADE OUT LOGIC (10s hold, 6s fade)
                 setTimeout(() => {
